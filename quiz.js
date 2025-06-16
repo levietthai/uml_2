@@ -1,8 +1,3 @@
-let questions = [];
-let currentQuestionIndex = 0;
-let score = 0;
-let shuffledQuestions = [];
-
 // DOM Elements
 const startScreen = document.getElementById('start-screen');
 const questionContainer = document.getElementById('question-container');
@@ -17,6 +12,13 @@ const scoreElement = document.getElementById('score');
 const totalElement = document.getElementById('total');
 const themeToggle = document.getElementById('theme-toggle');
 
+// Variables
+let questions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let shuffledQuestions = [];
+let currentShuffledOptions = [];
+
 // Theme toggle
 themeToggle.addEventListener('click', () => {
     document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -28,14 +30,22 @@ async function loadQuestions() {
     try {
         const response = await fetch('questions.json');
         const data = await response.json();
-        questions = data.questions;
+        questions = data;  // Thay đổi này vì data không cần .questions nữa
         totalElement.textContent = questions.length;
+        shuffledQuestions = [...questions]; // Khởi tạo shuffledQuestions
     } catch (error) {
         console.error('Error loading questions:', error);
     }
 }
 
-// Shuffle array using Fisher-Yates algorithm
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+    document.body.dataset.theme = 'light';
+    themeToggle.textContent = '🌙';
+    await loadQuestions();
+});
+
+// Shuffle array
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -44,7 +54,7 @@ function shuffleArray(array) {
     return array;
 }
 
-// Start the quiz
+// Start quiz
 function startQuiz() {
     shuffledQuestions = shuffleArray([...questions]);
     currentQuestionIndex = 0;
@@ -55,16 +65,15 @@ function startQuiz() {
     showQuestion();
 }
 
-// Show current question
+// Show question
 function showQuestion() {
     const question = shuffledQuestions[currentQuestionIndex];
     questionText.textContent = question.question;
     optionsContainer.innerHTML = '';
-    
-    // Shuffle options
-    const shuffledOptions = shuffleArray([...question.options]);
-    
-    shuffledOptions.forEach((option, index) => {
+
+    currentShuffledOptions = shuffleArray([...question.options]);
+
+    currentShuffledOptions.forEach((option, index) => {
         const optionElement = document.createElement('div');
         optionElement.classList.add('option');
         optionElement.textContent = option;
@@ -72,7 +81,6 @@ function showQuestion() {
         optionsContainer.appendChild(optionElement);
     });
 
-    // Update progress bar
     const progress = ((currentQuestionIndex) / questions.length) * 100;
     progressBar.style.width = `${progress}%`;
 }
@@ -80,28 +88,31 @@ function showQuestion() {
 // Check answer
 function checkAnswer(selectedIndex) {
     const question = shuffledQuestions[currentQuestionIndex];
+    const selectedOption = currentShuffledOptions[selectedIndex];
+    const correctAnswer = question.answer;
     const options = optionsContainer.children;
-    const correctIndex = question.options.indexOf(question.options[question.correct]);
-    
-    // Disable all options
+
     Array.from(options).forEach(option => {
         option.style.pointerEvents = 'none';
     });
 
-    // Check if answer is correct
-    if (selectedIndex === correctIndex) {
+    if (selectedOption === correctAnswer) {
         options[selectedIndex].classList.add('correct');
         feedback.textContent = 'Correct!';
         feedback.style.color = 'var(--correct-color)';
         score++;
     } else {
         options[selectedIndex].classList.add('incorrect');
-        options[correctIndex].classList.add('correct');
+        for (let i = 0; i < currentShuffledOptions.length; i++) {
+            if (currentShuffledOptions[i] === correctAnswer) {
+                options[i].classList.add('correct');
+                break;
+            }
+        }
         feedback.textContent = 'Incorrect!';
         feedback.style.color = 'var(--incorrect-color)';
     }
 
-    // Move to next question after delay
     setTimeout(() => {
         currentQuestionIndex++;
         if (currentQuestionIndex < questions.length) {
@@ -123,6 +134,3 @@ function showResults() {
 // Event listeners
 startBtn.addEventListener('click', startQuiz);
 restartBtn.addEventListener('click', startQuiz);
-
-// Initialize
-loadQuestions(); 
