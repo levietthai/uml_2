@@ -28,7 +28,7 @@ themeToggle.addEventListener('click', () => {
 // Load questions from JSON file
 async function loadQuestions() {
     try {
-        const response = await fetch('questions.json');
+        const response = await fetch('questions.json?v=' + Date.now());
         const data = await response.json();
         questions = data;  // Thay đổi này vì data không cần .questions nữa
         totalElement.textContent = questions.length;
